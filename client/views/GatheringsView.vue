@@ -3,17 +3,16 @@ import GatheringListComponent from "@/components/Gathering/GatheringListComponen
 import { useUserStore } from "@/stores/user";
 import { storeToRefs } from "pinia";
 
-const { currentUsername, isLoggedIn } = storeToRefs(useUserStore());
+const { currentUsername } = storeToRefs(useUserStore());
+const { updateSession } = useUserStore();
+
+void updateSession();
 </script>
 
 <template>
   <main>
-    <h1>Home Page</h1>
-    <section>
-      <h1 v-if="isLoggedIn">Welcome {{ currentUsername }}!</h1>
-      <h1 v-else>Please login!</h1>
-    </section>
-    <GatheringListComponent />
+    <h1>{{ currentUsername }}</h1>
+    <GatheringListComponent :own="true" />
   </main>
 </template>
 
