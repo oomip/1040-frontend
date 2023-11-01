@@ -7,11 +7,21 @@ const props = defineProps(["gathering"]);
 const name = ref(props.gathering.name);
 const description = ref(props.gathering.description);
 const location = ref(props.gathering.location);
+const date = ref(props.gathering.date);
 const emit = defineEmits(["editGathering", "refreshGatherings"]);
 
-const editGathering = async (name: string, description: string, location: string) => {
+const editGathering = async (name: string, description: string, location: string, date: string) => {
   try {
-    await fetchy(`/api/gatherings/${props.gathering._id}`, "PATCH", { body: { update: { name, description, location } } });
+    await fetchy(`/api/gatherings/${props.gathering._id}`, "PATCH", {
+      body: {
+        update: {
+          name: name,
+          description: description,
+          location: location,
+          date: date,
+        },
+      },
+    });
   } catch (e) {
     return;
   }
@@ -21,7 +31,7 @@ const editGathering = async (name: string, description: string, location: string
 </script>
 
 <template>
-  <form @submit.prevent="editGathering(name, description, location)">
+  <form @submit.prevent="editGathering(name, description, location, date)">
     <p class="members">{{ props.gathering.members }}</p>
     <label for="name">Gathering Name:</label>
     <input id="name" v-model="name" placeholder="name" required />
@@ -29,6 +39,8 @@ const editGathering = async (name: string, description: string, location: string
     <textarea id="description" v-model="description" placeholder="Description" required> </textarea>
     <label for="location">Gathering Location:</label>
     <textarea id="location" v-model="location" placeholder="Location" required> </textarea>
+    <label for="date">Gathering Date:</label>
+    <input id="date" type="datetime-local" v-model="date" placeholder="Date" />
     <div class="base">
       <menu>
         <li><button class="btn-small pure-button-primary pure-button" type="submit">Save</button></li>

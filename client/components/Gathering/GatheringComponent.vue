@@ -16,18 +16,49 @@ const deleteGathering = async () => {
   }
   emit("refreshGatherings");
 };
+
+const joinGathering = async () => {
+  try {
+    await fetchy(`/api/gatherings/${props.gathering._id}/join`, "POST");
+  } catch (error) {
+    // console.error("An error occurred while joining the gathering:", error);
+    return;
+  }
+  emit("refreshGatherings");
+};
+const leaveGathering = async () => {
+  try {
+    await fetchy(`/api/gatherings/${props.gathering._id}/leave`, "POST");
+  } catch {
+    return;
+  }
+  emit("refreshGatherings");
+};
 </script>
 
 <template>
   <p class="name">{{ props.gathering.name }}</p>
   <p>{{ props.gathering.description }}</p>
 
-  <p><font-awesome-icon icon="fa-solid fa-location-dot" />{{ props.gathering.location }}</p>
-  <p><font-awesome-icon icon="fa-solid fa-calendar-days" /> {{ new Date(props.gathering.date).toUTCString() }}</p>
+  <p><font-awesome-icon :icon="['fas', 'location-dot']" /> {{ props.gathering.location }}</p>
+  <p><font-awesome-icon :icon="['fas', 'calendar-days']" /> {{ new Date(props.gathering.date).toUTCString() }}</p>
+  <p><font-awesome-icon :icon="['fas', 'users']" /> {{ props.gathering.members.length }}</p>
   <div class="base">
     <menu v-if="props.gathering.author == currentUsername">
-      <li><button class="btn-small pure-button" @click="emit('editGathering', props.gathering._id)">Edit</button></li>
-      <li><button class="button-error btn-small pure-button" @click="deleteGathering">Delete</button></li>
+      <li>
+        <button class="btn-small pure-button" @click="emit('editGathering', props.gathering._id)"><font-awesome-icon :icon="['fas', 'pen-to-square']" /></button>
+      </li>
+      <li>
+        <button class="button-error btn-small pure-button" @click="deleteGathering"><font-awesome-icon :icon="['fas', 'trash']" /></button>
+      </li>
+    </menu>
+    <menu v-else>
+      <li v-if="props.gathering.members.includes(currentUsername)">
+        <button class="btn-small pure-button button-dark" @click="leaveGathering"><font-awesome-icon :icon="['fas', 'x']" /></button>
+      </li>
+      <li v-else>
+        <button class="btn-small pure-button button-accent" @click="joinGathering"><font-awesome-icon :icon="['fas', 'check']" /></button>
+      </li>
     </menu>
     <article class="timestamp">
       <p v-if="props.gathering.dateCreated !== props.gathering.dateUpdated">Edited on: {{ formatDate(props.gathering.dateUpdated) }}</p>

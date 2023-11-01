@@ -29,13 +29,25 @@ p {
   font-family: HelveticaNeue;
 }
 
+
 button.btn-small {
   font-size: 80%;
+  border-radius: 20%;
 }
 
 button.button-error {
   color: white;
   background: var(--red);
+}
+
+button.button-accent {
+  color: rgb(0, 29, 7);
+  background: #ffcfe9;
+}
+
+button.button-dark {
+  color: #ffcfe9;
+  background: #001d0a;
 }
 
 a.button {

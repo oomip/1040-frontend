@@ -47,7 +47,7 @@ onBeforeMount(async () => {
     <SearchGatheringForm @getGatheringsByName="getGatherings" />
   </div>
   <section class="gatherings" v-if="loaded && gatherings.length !== 0">
-    <article v-for="gathering in gatherings" :key="gathering.date">
+    <article v-for="gathering in gatherings" :key="gathering._id">
       <GatheringComponent v-if="editing !== gathering._id" :gathering="gathering" @refreshGatherings="getGatherings" @editGathering="updateEditing" />
       <EditGatheringForm v-else :gathering="gathering" @refreshGatherings="getGatherings" @editGathering="updateEditing" />
     </article>

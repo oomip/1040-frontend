@@ -1,5 +1,7 @@
+import { ObjectId } from "mongodb";
 import { User } from "./app";
 import { AlreadyFriendsError, FriendNotFoundError, FriendRequestAlreadyExistsError, FriendRequestDoc, FriendRequestNotFoundError } from "./concepts/friend";
+import { GatheringDoc } from "./concepts/gathering";
 import { PostAuthorNotMatchError, PostDoc } from "./concepts/post";
 import { Router } from "./framework/router";
 
@@ -9,7 +11,7 @@ import { Router } from "./framework/router";
  */
 export default class Responses {
   /**
-   * Convert PostDoc into more readable format for the frontend by converting the author id into a username.
+   * Convert PostDoc and GatheringDoc into more readable format for the frontend by converting the author id into a username.
    */
   static async post(post: PostDoc | null) {
     if (!post) {
@@ -18,6 +20,17 @@ export default class Responses {
     const author = await User.getUserById(post.author);
     return { ...post, author: author.username };
   }
+  static async gathering(gathering: GatheringDoc | null) {
+    if (!gathering) {
+      return gathering;
+    }
+    const author = await User.getUserById(gathering.author);
+    const members = [];
+    for (const member of gathering.members) {
+      members.push(await User.getUserById(member));
+    }
+    return { ...gathering, author: author.username, members: members };
+  }
 
   /**
    * Same as {@link post} but for an array of PostDoc for improved performance.
@@ -25,6 +38,12 @@ export default class Responses {
   static async posts(posts: PostDoc[]) {
     const authors = await User.idsToUsernames(posts.map((post) => post.author));
     return posts.map((post, i) => ({ ...post, author: authors[i] }));
+  }
+  static async gatherings(gatherings: GatheringDoc[]) {
+    const authors = await User.idsToUsernames(gatherings.map((gathering) => gathering.author));
+    const memberLists: ObjectId[][] = gatherings.map((gathering) => Array.from(gathering.members));
+    const memberNames: String[][] = await Promise.all(memberLists.map(async (memberList) => await User.idsToUsernames(memberList)));
+    return gatherings.map((gathering, i) => ({ ...gathering, author: authors[i], members: memberNames[i] }));
   }
 
   /**
