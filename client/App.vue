@@ -25,9 +25,9 @@ onBeforeMount(async () => {
   <header>
     <nav>
       <div class="title">
-        <img src="@/assets/images/logo.svg" />
+        <img src="@/assets/images/waterfall.png" height="500" />
         <RouterLink :to="{ name: 'Home' }">
-          <h1>Social Media App</h1>
+          <h1>Social Cascadia</h1>
         </RouterLink>
       </div>
       <ul>
@@ -54,13 +54,15 @@ onBeforeMount(async () => {
 
 nav {
   padding: 1em 2em;
-  background-color: lightgray;
+  background-color: #0057b3;
   display: flex;
   align-items: center;
+  filter: drop-shadow(#ffcfe9 0em 1em 10px);
 }
 
 h1 {
   font-size: 2em;
+  color: #f7ffeb;
   margin: 0;
 }
 
@@ -75,8 +77,7 @@ img {
 }
 
 a {
-  font-size: large;
-  color: black;
+  color: #f7ffeb;
   text-decoration: none;
 }
 

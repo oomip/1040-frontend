@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import CreateGatheringForm from "@/components/Gathering/CreateGatheringForm.vue";
 import EditGatheringForm from "@/components/Gathering/EditGatheringForm.vue";
 import GatheringComponent from "@/components/Gathering/GatheringComponent.vue";
 import { useUserStore } from "@/stores/user";
@@ -7,23 +6,21 @@ import { fetchy } from "@/utils/fetchy";
 import { storeToRefs } from "pinia";
 import { onBeforeMount, ref } from "vue";
 import SearchGatheringForm from "./SearchGatheringForm.vue";
-
 const { isLoggedIn } = storeToRefs(useUserStore());
 
 const loaded = ref(false);
 let gatherings = ref<Array<Record<string, string>>>([]);
 let editing = ref("");
-let searchAuthor = ref("");
+const editableGatheringsOnly = ref(false);
 
-async function getGatherings(author?: string) {
-  let query: Record<string, string> = author !== undefined ? { author } : {};
+async function getGatheringsByMember(checkAuthor?: string) {
+  let query: Record<string, string> = checkAuthor !== undefined ? { checkAuthor } : {};
   let gatheringResults;
   try {
-    gatheringResults = await fetchy("/api/gatherings", "GET", { query });
+    gatheringResults = await fetchy("/api/gatherings/byMember", "GET", { query });
   } catch (_) {
     return;
   }
-  searchAuthor.value = author ? author : "";
   gatherings.value = gatheringResults;
 }
 
@@ -32,28 +29,29 @@ function updateEditing(id: string) {
 }
 
 onBeforeMount(async () => {
-  await getGatherings();
+  await getGatheringsByMember(String(editableGatheringsOnly));
   loaded.value = true;
 });
 </script>
 
 <template>
   <section v-if="isLoggedIn">
-    <h2>Create a gathering:</h2>
-    <CreateGatheringForm @refreshGatherings="getGatherings" />
+    <div class="row">
+      <h2>Gatherings:</h2>
+      <SearchGatheringForm @getGatheringsByName="getGatheringsByMember" />
+    </div>
+    <section class="gatherings" v-if="loaded && gatherings.length !== 0">
+      <article v-for="gathering in gatherings" :key="gathering.date">
+        <GatheringComponent v-if="editing !== gathering._id" :gathering="gathering" @refreshGatherings="getGatheringsByMember" @editGathering="updateEditing" />
+        <EditGatheringForm v-else :gathering="gathering" @refreshGatherings="getGatheringsByMember" @editGathering="updateEditing" />
+      </article>
+    </section>
+    <p v-else-if="loaded">Sign up for some gatherings on the left!</p>
+    <p v-else>Loading...</p>
   </section>
-  <div class="row">
-    <h2>Gatherings:</h2>
-    <SearchGatheringForm @getGatheringsByName="getGatherings" />
-  </div>
-  <section class="gatherings" v-if="loaded && gatherings.length !== 0">
-    <article v-for="gathering in gatherings" :key="gathering.date">
-      <GatheringComponent v-if="editing !== gathering._id" :gathering="gathering" @refreshGatherings="getGatherings" @editGathering="updateEditing" />
-      <EditGatheringForm v-else :gathering="gathering" @refreshGatherings="getGatherings" @editGathering="updateEditing" />
-    </article>
+  <section v-else>
+    <p>Your gatherings would be displayed here.</p>
   </section>
-  <p v-else-if="loaded">No gatherings found</p>
-  <p v-else>Loading...</p>
 </template>
 
 <style scoped>
@@ -68,6 +66,7 @@ p,
 .row {
   margin: 0 auto;
   max-width: 60em;
+  display: flex;
 }
 
 article {

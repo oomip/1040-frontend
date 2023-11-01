@@ -1,8 +1,32 @@
 /* Add some global styles here! */
+@font-face {
+  font-family: Mako;
+  src: url('Mako-Regular.ttf');
+}
+
+@font-face {
+  font-family: Average;
+  src: url('Average-Regular.ttf');
+}
+
+@font-face {
+  font-family: HelveticaNeue;
+  src: url('HelveticaNeue.ttf');
+}
 
 :root {
   --red: rgb(208, 67, 12);
-  --base-bg: #f1f3f5;
+  --base-bg: #8ed387;
+  background-color: #f7ffeb;
+  font-family: Mako, Average, HelveticaNeue;
+}
+
+h2, h3, h4 {
+  font-family: Average
+}
+
+p {
+  font-family: HelveticaNeue;
 }
 
 button.btn-small {
@@ -15,7 +39,7 @@ button.button-error {
 }
 
 a.button {
-  color: #212529;
+  color: #ffcfe9;
   background-color: #f1f3f5;
   border: 1px solid #dee2e6;
   border-radius: 0.25em;

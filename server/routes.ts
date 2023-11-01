@@ -243,20 +243,46 @@ class Routes {
   }
 
   @Router.post("/gatherings")
-  async createGathering(session: WebSessionDoc, name: string, description: string, location: string) {
+  async createGathering(session: WebSessionDoc, name: string, description: string, location: string, date: string) {
     const user = WebSession.getUser(session);
-    const created = await Gathering.create(name, description, location, user);
+    const created = await Gathering.create(name, description, location, date, user);
     return { msg: created.msg, gathering: created.gathering };
   }
 
   @Router.patch("/gatherings/:_id")
-  async updateGathering(_id: ObjectId, update: Partial<GatheringDoc>) {
+  async updateGathering(session: WebSessionDoc, _id: ObjectId, update: Partial<GatheringDoc>) {
+    const user = WebSession.getUser(session);
+    await Gathering.canEdit(user, _id);
     return await Gathering.update(_id, update);
   }
 
   @Router.delete("/gatherings/:_id")
-  async deleteGathering(_id: ObjectId) {
+  async deleteGathering(session: WebSessionDoc, _id: ObjectId) {
+    const user = WebSession.getUser(session);
+    await Gathering.canEdit(user, _id);
     return await Gathering.delete(_id);
+  }
+
+  @Router.get("/gatherings/:_id/check")
+  async checkGatheringEditable(session: WebSessionDoc, _id: ObjectId) {
+    const user = WebSession.getUser(session);
+    try {
+      await Gathering.canEdit(user, _id);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  @Router.get("/gatherings/byMember")
+  async getGatheringsOfMember(session: WebSessionDoc, checkAuthor?: string) {
+    const user = WebSession.getUser(session);
+    return await Gathering.getGatheringsOfMember(user, checkAuthor);
+  }
+
+  @Router.get("gatherings/:_id/members")
+  async getMembersOfGathering(session: WebSessionDoc, _id: ObjectId) {
+    return await Gathering.getMembers(_id);
   }
 
   @Router.post("gatherings/:_id/join")

@@ -6,15 +6,17 @@ export interface GatheringDoc extends BaseDoc {
   name: string;
   description: string;
   location: string;
+  date: string;
   members: Set<ObjectId>;
   groups: Set<ObjectId>;
+  author: ObjectId;
 }
 
 export default class GatheringConcept {
   public readonly gatherings = new DocCollection<GatheringDoc>("gatherings");
 
-  async create(name: string, description: string, location: string, creator: ObjectId) {
-    const gathering = await this.gatherings.createOne({ name, description, location, members: new Set([creator]) });
+  async create(name: string, description: string, location: string, date: string, author: ObjectId) {
+    const gathering = await this.gatherings.createOne({ name, description, location, date: date, members: new Set([author]), author: author });
     return { msg: "Gathering successfully created!", gathering: gathering };
   }
 
@@ -36,12 +38,16 @@ export default class GatheringConcept {
     return gathering.members;
   }
 
-  async getGatheringsOfMember(member: ObjectId): Promise<GatheringDoc[]> {
-    const gatherings = await this.gatherings.readMany({ members: { $elemMatch: { $eq: member } } });
+  async getGatheringsOfMember(member: ObjectId, checkAuthor?: string): Promise<GatheringDoc[]> {
+    const query: Filter<GatheringDoc> = { members: { $elemMatch: { $eq: member } } };
+    if (checkAuthor == "true") {
+      query.author = member;
+    }
+    const gatherings = await this.gatherings.readMany(query);
     return gatherings;
   }
 
-  async update(_id: ObjectId, params: { name?: string; activity?: ObjectId; date?: Date }) {
+  async update(_id: ObjectId, params: { name?: string; description?: string; location?: string; date?: string }) {
     await this.getGatheringbyId(_id);
     await this.gatherings.updateOne({ _id }, params);
     return { msg: `Gathering successfully updated!` };
@@ -89,6 +95,19 @@ export default class GatheringConcept {
     await this.gatherings.deleteOne({ _id });
     return { msg: `Gathering '${name}' deleted!` };
   }
+
+  async canEdit(user: ObjectId, _id: ObjectId) {
+    const gathering = await this.gatherings.readOne({ _id });
+    if (!gathering) {
+      throw new NotFoundError(`Post ${_id} does not exist!`);
+    }
+    if (gathering.members.size > 1) {
+      throw new GatheringUneditableError(gathering._id);
+    }
+    if (gathering.author.toString() !== user.toString()) {
+      throw new GatheringAuthorNotMatchError(user, _id);
+    }
+  }
 }
 
 export class MemberAlreadyInGatheringError extends NotAllowedError {
@@ -106,5 +125,20 @@ export class GroupAlreadyInGatheringError extends NotAllowedError {
     public readonly gathering: ObjectId,
   ) {
     super("Group {0} is already in {1}!", group, gathering);
+  }
+}
+
+export class GatheringAuthorNotMatchError extends NotAllowedError {
+  constructor(
+    public readonly author: ObjectId,
+    public readonly _id: ObjectId,
+  ) {
+    super("{0} is not the author of gathering {1}!", author, _id);
+  }
+}
+
+export class GatheringUneditableError extends NotAllowedError {
+  constructor(public readonly _id: ObjectId) {
+    super("Gathering {0} cannot be edited when there are multiple members!", _id);
   }
 }

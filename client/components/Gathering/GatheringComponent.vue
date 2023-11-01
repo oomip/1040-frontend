@@ -19,12 +19,13 @@ const deleteGathering = async () => {
 </script>
 
 <template>
-  <p class="author">{{ props.gathering.author }}</p>
-  <p>{{ props.gathering.name }}</p>
+  <p class="name">{{ props.gathering.name }}</p>
   <p>{{ props.gathering.description }}</p>
-  <p>{{ props.gathering.location }}</p>
+
+  <p><font-awesome-icon icon="fa-solid fa-location-dot" />{{ props.gathering.location }}</p>
+  <p><font-awesome-icon icon="fa-solid fa-calendar-days" /> {{ new Date(props.gathering.date).toUTCString() }}</p>
   <div class="base">
-    <menu v-if="props.gathering.members.size === 1 && Array.from(props.gathering.members)[0].username == currentUsername">
+    <menu v-if="props.gathering.author == currentUsername">
       <li><button class="btn-small pure-button" @click="emit('editGathering', props.gathering._id)">Edit</button></li>
       <li><button class="button-error btn-small pure-button" @click="deleteGathering">Delete</button></li>
     </menu>
@@ -40,7 +41,7 @@ p {
   margin: 0em;
 }
 
-.author {
+.name {
   font-weight: bold;
   font-size: 1.2em;
 }
