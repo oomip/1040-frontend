@@ -21,7 +21,6 @@ const joinGathering = async () => {
   try {
     await fetchy(`/api/gatherings/${props.gathering._id}/join`, "POST");
   } catch (error) {
-    // console.error("An error occurred while joining the gathering:", error);
     return;
   }
   emit("refreshGatherings");
@@ -29,7 +28,7 @@ const joinGathering = async () => {
 const leaveGathering = async () => {
   try {
     await fetchy(`/api/gatherings/${props.gathering._id}/leave`, "POST");
-  } catch {
+  } catch (error) {
     return;
   }
   emit("refreshGatherings");
@@ -40,7 +39,7 @@ const leaveGathering = async () => {
   <p class="name">{{ props.gathering.name }}</p>
   <p>{{ props.gathering.description }}</p>
 
-  <p><font-awesome-icon :icon="['fas', 'location-dot']" /> {{ props.gathering.location }}</p>
+  <p><font-awesome-icon :icon="['fas', 'location-dot']" /> <a target="_blank" :href="'https://w3w.co/' + props.gathering.location">{{ props.gathering.location }}</a></p>
   <p><font-awesome-icon :icon="['fas', 'calendar-days']" /> {{ new Date(props.gathering.date).toUTCString() }}</p>
   <p><font-awesome-icon :icon="['fas', 'users']" /> {{ props.gathering.members.length }}</p>
   <div class="base">
@@ -70,6 +69,7 @@ const leaveGathering = async () => {
 <style scoped>
 p {
   margin: 0em;
+  text-align: left;
 }
 
 .name {
@@ -86,17 +86,18 @@ menu {
   margin: 0;
 }
 
-.timestamp {
+.timestamp p {
   display: flex;
-  justify-content: flex-end;
   font-size: 0.9em;
   font-style: italic;
+  justify-content: flex-end;
 }
 
 .base {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
+  gap: 2em;
 }
 
 .base article:only-child {

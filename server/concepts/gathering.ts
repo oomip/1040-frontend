@@ -7,8 +7,8 @@ export interface GatheringDoc extends BaseDoc {
   description: string;
   location: string;
   date: string;
-  members: Set<ObjectId>;
-  groups: Set<ObjectId>;
+  members: ObjectId[];
+  groups: ObjectId[];
   author: ObjectId;
 }
 
@@ -16,7 +16,7 @@ export default class GatheringConcept {
   public readonly gatherings = new DocCollection<GatheringDoc>("gatherings");
 
   async create(name: string, description: string, location: string, date: string, author: ObjectId) {
-    const gathering = await this.gatherings.createOne({ name, description, location, date: date, members: new Set([author]), author: author });
+    const gathering = await this.gatherings.createOne({ name, description, location, date: date, members: [author], author: author });
     return { msg: "Gathering successfully created!", gathering: gathering };
   }
 
@@ -33,16 +33,19 @@ export default class GatheringConcept {
     return gathering;
   }
 
-  async getMembers(_id: ObjectId): Promise<Set<ObjectId>> {
+  async getMembers(_id: ObjectId): Promise<Array<ObjectId>> {
     const gathering = await this.getGatheringbyId(_id);
     return gathering.members;
   }
 
-  async getGatheringsOfMember(member: ObjectId, checkAuthor?: string): Promise<GatheringDoc[]> {
+  async getGatheringsOfMember(member: ObjectId): Promise<GatheringDoc[]> {
     const query: Filter<GatheringDoc> = { members: { $elemMatch: { $eq: member } } };
-    if (checkAuthor == "true") {
-      query.author = member;
-    }
+    const gatherings = await this.gatherings.readMany(query);
+    return gatherings;
+  }
+
+  async getEditableGatheringsOfMember(member: ObjectId): Promise<GatheringDoc[]> {
+    const query: Filter<GatheringDoc> = { author: { $eq: member }, members: { $size: 1 } };
     const gatherings = await this.gatherings.readMany(query);
     return gatherings;
   }
@@ -55,38 +58,56 @@ export default class GatheringConcept {
 
   async addMember(_id: ObjectId, member: ObjectId) {
     const gathering = await this.getGatheringbyId(_id);
-    if (gathering.members.has(member)) {
+    if (await this.isMemberOf(member, _id)) {
       throw new MemberAlreadyInGatheringError(member, gathering._id);
     }
-    await this.gatherings.updateOne({ _id }, { members: gathering.members.add(member) });
+    const maxMembers = 4;
+    if (gathering.members.length > maxMembers-1) {
+      throw new TooManyMembersInGatheringError(gathering._id, maxMembers);
+    }
+    await this.gatherings.updateOne({ _id }, { members: [...gathering.members, member] });
     return { msg: `Member successfully added to Gathering!` };
   }
 
   async removeMember(_id: ObjectId, member: ObjectId) {
     const gathering = await this.getGatheringbyId(_id);
-    if (!gathering.members.has(member)) {
+    if (!(await this.isMemberOf(member, _id))) {
       throw new NotFoundError("Member is not in gathering!");
     }
-    await this.gatherings.updateOne({ _id }, { members: gathering.members.add(member) });
-    return { msg: `Member successfully removed from Gathering!` };
+    const stringMembers = gathering.members.map((id) => id.toString())
+    const index = stringMembers.indexOf(member.toString());
+    if (index > -1) {
+      gathering.members.splice(index, 1);
+      await this.gatherings.updateOne({ _id }, { members: gathering.members });
+      return { msg: `Member successfully removed from Gathering!` };
+    } else {
+      throw new NotFoundError("Member is not in gathering! Also, this code should be unreachable.");
+    }
   }
 
-  async addGroup(_id: ObjectId, member: ObjectId) {
+  async addGroup(_id: ObjectId, group: ObjectId) {
     const gathering = await this.getGatheringbyId(_id);
-    if (gathering.members.has(member)) {
-      throw new GroupAlreadyInGatheringError(member, gathering._id);
+    if (await this.isGroupOf(group, _id)) {
+      throw new GroupAlreadyInGatheringError(group, gathering._id);
     }
-    await this.gatherings.updateOne({ _id }, { members: gathering.members.add(member) });
+    await this.gatherings.updateOne({ _id }, { groups: [...gathering.members, group] });
     return { msg: `Group successfully added to Gathering!` };
   }
 
-  async removeGroup(_id: ObjectId, member: ObjectId) {
+  async removeGroup(_id: ObjectId, group: ObjectId) {
     const gathering = await this.getGatheringbyId(_id);
-    if (!gathering.members.has(member)) {
+    if (!(await this.isGroupOf(group, _id))) {
       throw new NotFoundError("Group is not in gathering!");
     }
-    await this.gatherings.updateOne({ _id }, { members: gathering.members.add(member) });
-    return { msg: `Group successfully removed from Gathering!` };
+    const stringGroups = gathering.members.map((id) => id.toString())
+    const index = stringGroups.indexOf(group.toString());
+    if (index > -1) {
+      gathering.members.splice(index, 1);
+      await this.gatherings.updateOne({ _id }, { groups: gathering.members });
+      return { msg: `Group successfully removed from Gathering!` };
+    } else {
+      throw new NotFoundError("Group is not in gathering! Also, this code should be unreachable.");
+    }
   }
 
   async delete(_id: ObjectId): Promise<{ msg: string }> {
@@ -96,35 +117,64 @@ export default class GatheringConcept {
     return { msg: `Gathering '${name}' deleted!` };
   }
 
+  async isMemberOf(user: ObjectId, _id: ObjectId): Promise<boolean> {
+    const gathering = await this.getGatheringbyId(_id);
+    return gathering.members.some(id => id.toString() === user.toString())
+  }
+
+  async isGroupOf(group: ObjectId, _id: ObjectId): Promise<boolean> {
+    const gathering = await this.getGatheringbyId(_id);
+    return gathering.groups.some(id => id.toString() === group.toString())
+  }
+
   async canEdit(user: ObjectId, _id: ObjectId) {
     const gathering = await this.gatherings.readOne({ _id });
     if (!gathering) {
       throw new NotFoundError(`Post ${_id} does not exist!`);
     }
-    if (gathering.members.size > 1) {
+    if (gathering.members.length > 1) {
       throw new GatheringUneditableError(gathering._id);
     }
     if (gathering.author.toString() !== user.toString()) {
       throw new GatheringAuthorNotMatchError(user, _id);
     }
   }
+
+  private async getGroupNumber(_id: ObjectId, group: ObjectId) {
+    const gathering = await this.getGatheringbyId(_id);
+    if (gathering.groups.some(id => id.toString() === group.toString())) {
+      return gathering.groups.indexOf(group)
+    } else {
+      return -1;
+    }
+  }
+
 }
 
 export class MemberAlreadyInGatheringError extends NotAllowedError {
   constructor(
     public readonly member: ObjectId,
-    public readonly gathering: ObjectId,
+    public readonly _id: ObjectId,
   ) {
-    super("Member {0} is already in {1}!", member, gathering);
+    super("Member {0} is already a member of gathering {1}!", member, _id);
+  }
+}
+
+export class TooManyMembersInGatheringError extends NotAllowedError {
+  constructor(
+    public readonly _id: ObjectId,
+    public readonly maxMembers: number,
+  ) {
+    super("Gathering {0} cannot have more than {1} members!", _id, maxMembers);
   }
 }
 
 export class GroupAlreadyInGatheringError extends NotAllowedError {
   constructor(
     public readonly group: ObjectId,
-    public readonly gathering: ObjectId,
+    public readonly _id: ObjectId,
   ) {
-    super("Group {0} is already in {1}!", group, gathering);
+    super("Group {0} is already in {1}!", group, _id);
   }
 }
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { useToastStore } from "../../stores/toast";
 import { fetchy } from "../../utils/fetchy";
 import { formatDate } from "../../utils/formatDate";
 
@@ -11,6 +12,22 @@ const date = ref(props.gathering.date);
 const emit = defineEmits(["editGathering", "refreshGatherings"]);
 
 const editGathering = async (name: string, description: string, location: string, date: string) => {
+  // data validation
+  // location
+  const locationRegex = /\/\/\/[a-z]+.[a-z]+.[a-z]+/;
+  if (!(location.match(locationRegex)) && !location.match(/[a-z]+.[a-z]+.[a-z]+/)) {
+    useToastStore().showToast({ message: "Please use What3Words format! Example: ///item.shop.boss", style: "error" });
+    return;
+  }
+  // date
+  if (new Date(date).getTime() < Date.now()) {
+    useToastStore().showToast({ message: "Date must be in the future!", style: "error" });
+    return;
+  }
+  if (new Date(date).getTime() > new Date(new Date().setFullYear(new Date().getFullYear() + 1)).getTime()) {
+    useToastStore().showToast({ message: "Date must be within 1 year from now!", style: "error" });
+    return;
+  }
   try {
     await fetchy(`/api/gatherings/${props.gathering._id}`, "PATCH", {
       body: {
@@ -32,20 +49,20 @@ const editGathering = async (name: string, description: string, location: string
 
 <template>
   <form @submit.prevent="editGathering(name, description, location, date)">
-    <p class="members">{{ props.gathering.members }}</p>
+    <p class="members"> Group Members: {{ props.gathering.members.length }}</p>
     <label for="name">Gathering Name:</label>
     <input id="name" v-model="name" placeholder="name" required />
     <label for="description">Gathering Description:</label>
     <textarea id="description" v-model="description" placeholder="Description" required> </textarea>
-    <label for="location">Gathering Location:</label>
+    <label for="location"><font-awesome-icon :icon="['fas', 'location-dot']" /> Gathering Location:</label>
     <textarea id="location" v-model="location" placeholder="Location" required> </textarea>
-    <label for="date">Gathering Date:</label>
+    <label for="date"><font-awesome-icon :icon="['fas', 'calendar-days']" /> Gathering Date:</label>
     <input id="date" type="datetime-local" v-model="date" placeholder="Date" />
     <div class="base">
       <menu>
         <li><button class="btn-small pure-button-primary pure-button" type="submit">Save</button></li>
         <li><button class="btn-small pure-button" @click="emit('editGathering')">Cancel</button></li>
-      </menu>
+      </menu> 
       <p v-if="props.gathering.dateCreated !== props.gathering.dateUpdated" class="timestamp">Edited on: {{ formatDate(props.gathering.dateUpdated) }}</p>
       <p v-else class="timestamp">Created on: {{ formatDate(props.gathering.dateCreated) }}</p>
     </div>

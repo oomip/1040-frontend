@@ -1,8 +1,9 @@
 import { ObjectId } from "mongodb";
-import { User } from "./app";
-import { AlreadyFriendsError, FriendNotFoundError, FriendRequestAlreadyExistsError, FriendRequestDoc, FriendRequestNotFoundError } from "./concepts/friend";
-import { GatheringDoc } from "./concepts/gathering";
+import { Gathering, User } from "./app";
+// import { AlreadyFriendsError, FriendNotFoundError, FriendRequestAlreadyExistsError, FriendRequestDoc, FriendRequestNotFoundError } from "./concepts/friend";
+import { GatheringAuthorNotMatchError, GatheringDoc, GatheringUneditableError, GroupAlreadyInGatheringError, MemberAlreadyInGatheringError } from "./concepts/gathering";
 import { PostAuthorNotMatchError, PostDoc } from "./concepts/post";
+import { UserDoc } from "./concepts/user";
 import { Router } from "./framework/router";
 
 /**
@@ -45,17 +46,20 @@ export default class Responses {
     const memberNames: String[][] = await Promise.all(memberLists.map(async (memberList) => await User.idsToUsernames(memberList)));
     return gatherings.map((gathering, i) => ({ ...gathering, author: authors[i], members: memberNames[i] }));
   }
-
-  /**
-   * Convert FriendRequestDoc into more readable format for the frontend
-   * by converting the ids into usernames.
-   */
-  static async friendRequests(requests: FriendRequestDoc[]) {
-    const from = requests.map((request) => request.from);
-    const to = requests.map((request) => request.to);
-    const usernames = await User.idsToUsernames(from.concat(to));
-    return requests.map((request, i) => ({ ...request, from: usernames[i], to: usernames[i + requests.length] }));
+  static async users(users: UserDoc[]) {
+    return users.map((user) => user.username);
   }
+
+//   /**
+//    * Convert FriendRequestDoc into more readable format for the frontend
+//    * by converting the ids into usernames.
+//    */
+//   static async friendRequests(requests: FriendRequestDoc[]) {
+//     const from = requests.map((request) => request.from);
+//     const to = requests.map((request) => request.to);
+//     const usernames = await User.idsToUsernames(from.concat(to));
+//     return requests.map((request, i) => ({ ...request, from: usernames[i], to: usernames[i + requests.length] }));
+//   }
 }
 
 Router.registerError(PostAuthorNotMatchError, async (e) => {
@@ -63,22 +67,45 @@ Router.registerError(PostAuthorNotMatchError, async (e) => {
   return e.formatWith(username, e._id);
 });
 
-Router.registerError(FriendRequestAlreadyExistsError, async (e) => {
-  const [user1, user2] = await Promise.all([User.getUserById(e.from), User.getUserById(e.to)]);
-  return e.formatWith(user1.username, user2.username);
+Router.registerError(MemberAlreadyInGatheringError, async (e) => {
+  const username = (await User.getUserById(e.member)).username;
+  const gathering = (await Gathering.getGatheringbyId(e._id)).name;
+  return e.formatWith(username, gathering);
 });
 
-Router.registerError(FriendNotFoundError, async (e) => {
-  const [user1, user2] = await Promise.all([User.getUserById(e.user1), User.getUserById(e.user2)]);
-  return e.formatWith(user1.username, user2.username);
+Router.registerError(GroupAlreadyInGatheringError, async (e) => {
+  const group = (await User.getUserById(e.group));
+  const gathering = (await Gathering.getGatheringbyId(e._id)).name;
+  return e.formatWith(group, gathering);
 });
 
-Router.registerError(FriendRequestNotFoundError, async (e) => {
-  const [user1, user2] = await Promise.all([User.getUserById(e.from), User.getUserById(e.to)]);
-  return e.formatWith(user1.username, user2.username);
+Router.registerError(GatheringAuthorNotMatchError, async (e) => {
+  const username = (await User.getUserById(e.author)).username;
+  const gathering = (await Gathering.getGatheringbyId(e._id)).name;
+  return e.formatWith(username, gathering);
 });
 
-Router.registerError(AlreadyFriendsError, async (e) => {
-  const [user1, user2] = await Promise.all([User.getUserById(e.user1), User.getUserById(e.user2)]);
-  return e.formatWith(user1.username, user2.username);
+Router.registerError(GatheringUneditableError, async (e) => {
+  const gathering = (await Gathering.getGatheringbyId(e._id)).name;
+  return e.formatWith(gathering);
 });
+
+// Router.registerError(FriendRequestAlreadyExistsError, async (e) => {
+//   const [user1, user2] = await Promise.all([User.getUserById(e.from), User.getUserById(e.to)]);
+//   return e.formatWith(user1.username, user2.username);
+// });
+
+// Router.registerError(FriendNotFoundError, async (e) => {
+//   const [user1, user2] = await Promise.all([User.getUserById(e.user1), User.getUserById(e.user2)]);
+//   return e.formatWith(user1.username, user2.username);
+// });
+
+// Router.registerError(FriendRequestNotFoundError, async (e) => {
+//   const [user1, user2] = await Promise.all([User.getUserById(e.from), User.getUserById(e.to)]);
+//   return e.formatWith(user1.username, user2.username);
+// });
+
+// Router.registerError(AlreadyFriendsError, async (e) => {
+//   const [user1, user2] = await Promise.all([User.getUserById(e.user1), User.getUserById(e.user2)]);
+//   return e.formatWith(user1.username, user2.username);
+// });

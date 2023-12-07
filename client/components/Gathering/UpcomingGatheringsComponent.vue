@@ -5,20 +5,22 @@ import { useUserStore } from "@/stores/user";
 import { fetchy } from "@/utils/fetchy";
 import { storeToRefs } from "pinia";
 import { onBeforeMount, ref } from "vue";
-import SearchGatheringForm from "./SearchGatheringForm.vue";
 const { isLoggedIn } = storeToRefs(useUserStore());
 
 const loaded = ref(false);
 let gatherings = ref<Array<Record<string, string>>>([]);
 let editing = ref("");
-const editableGatheringsOnly = ref(false);
+let editableGatheringsOnly = ref(false);
 
-async function getGatheringsByMember(checkAuthor?: string) {
-  let query: Record<string, string> = checkAuthor !== undefined ? { checkAuthor } : {};
+async function getGatheringsByMember() {
   let gatheringResults;
   try {
-    gatheringResults = await fetchy("/api/gatherings/byMember", "GET", { query });
-  } catch (_) {
+    if (editableGatheringsOnly.value === true) {
+      gatheringResults = (await fetchy("/api/gatherings/editableByMember", "GET", { query: {} }));
+    } else {
+      gatheringResults = (await fetchy("/api/gatherings/byMember", "GET", { query: {} }));
+    }
+  } catch (e) {
     return;
   }
   gatherings.value = gatheringResults;
@@ -29,24 +31,24 @@ function updateEditing(id: string) {
 }
 
 onBeforeMount(async () => {
-  await getGatheringsByMember(String(editableGatheringsOnly));
+  await getGatheringsByMember();
   loaded.value = true;
 });
 </script>
 
 <template>
   <section v-if="isLoggedIn">
-    <div class="row">
-      <h2>Gatherings:</h2>
-      <SearchGatheringForm @getGatheringsByName="getGatheringsByMember" />
+    <div>
+      <label for="editable">Editable gatherings only: </label>
+      <input id="editable" v-model="editableGatheringsOnly" @change="getGatheringsByMember" type="checkbox" required />
     </div>
     <section class="gatherings" v-if="loaded && gatherings.length !== 0">
-      <article v-for="gathering in gatherings" :key="gathering.date">
+      <article v-for="gathering in gatherings" :key="gathering._id">
         <GatheringComponent v-if="editing !== gathering._id" :gathering="gathering" @refreshGatherings="getGatheringsByMember" @editGathering="updateEditing" />
         <EditGatheringForm v-else :gathering="gathering" @refreshGatherings="getGatheringsByMember" @editGathering="updateEditing" />
       </article>
     </section>
-    <p v-else-if="loaded">Sign up for some gatherings on the left!</p>
+    <p v-else-if="loaded">Create or join gatherings on the left!</p>
     <p v-else>Loading...</p>
   </section>
   <section v-else>
@@ -80,6 +82,7 @@ article {
 
 .gatherings {
   padding: 1em;
+  align-items: flex-start;
 }
 
 .row {

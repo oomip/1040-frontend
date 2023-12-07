@@ -128,7 +128,8 @@ class Routes {
   async createGathering(session: WebSessionDoc, name: string, description: string, location: string, date: string) {
     const user = WebSession.getUser(session);
     const created = await Gathering.create(name, description, location, date, user);
-    return { msg: created.msg, gathering: created.gathering };
+    const gathering = await Gathering.getGatheringbyId(created.gathering)
+    return { msg: created.msg, gathering: Responses.gathering(gathering) };
   }
 
   @Router.patch("/gatherings/:_id")
@@ -145,7 +146,7 @@ class Routes {
     return await Gathering.delete(_id);
   }
 
-  @Router.get("/gatherings/:_id/check")
+  @Router.get("/gatherings/:_id/checkEditable")
   async checkGatheringEditable(session: WebSessionDoc, _id: ObjectId) {
     const user = WebSession.getUser(session);
     try {
@@ -157,21 +158,31 @@ class Routes {
   }
 
   @Router.get("/gatherings/byMember")
-  async getGatheringsOfMember(session: WebSessionDoc, checkAuthor?: string) {
+  async getGatheringsOfMember(session: WebSessionDoc) {
     const user = WebSession.getUser(session);
-    return await Gathering.getGatheringsOfMember(user, checkAuthor);
+    return Responses.gatherings(await Gathering.getGatheringsOfMember(user));
+  }
+  @Router.get("/gatherings/editableByMember")
+  async getEditableGatheringsOfMember(session: WebSessionDoc) {
+    const user = WebSession.getUser(session);
+    return Responses.gatherings(await Gathering.getEditableGatheringsOfMember(user));
   }
 
-  @Router.get("gatherings/:_id/members")
+  @Router.get("/gatherings/:_id/members")
   async getMembersOfGathering(session: WebSessionDoc, _id: ObjectId) {
-    return await Gathering.getMembers(_id);
+    return User.idsToUsernames(await Gathering.getMembers(_id));
   }
 
-  @Router.post("gatherings/:_id/join")
+  @Router.post("/gatherings/:_id/join")
   async joinGathering(session: WebSessionDoc, _id: ObjectId) {
     const user = WebSession.getUser(session);
-    // const gathering = await Gathering.getGatheringbyId(_id);
-    await Gathering.addMember(_id, user);
+    const gathering = await Gathering.getGatheringbyId(_id);
+    try {
+      await Gathering.addMember(_id, user);
+    } catch (e) {
+      return e;
+    }
+    
     // for (const groupId of gathering.groups) {
     //   const group = await Group.getGroupById(groupId);
     //   if (group.members.size == 2) {
@@ -186,12 +197,19 @@ class Routes {
     //     await Gathering.addGroup(gathering._id, group._id);
     //   }
     // }
+    return await Gathering.addMember(_id, user);
   }
 
-  @Router.post("gatherings/:_id/leave")
+  @Router.post("/gatherings/:_id/leave")
   async leaveGathering(session: WebSessionDoc, _id: ObjectId) {
     const user = WebSession.getUser(session);
     return await Gathering.removeMember(_id, user);
+  }
+
+  @Router.get("/gatherings/:_id/checkMember")
+  async checkMemberOfGathering(session: WebSessionDoc, _id: ObjectId) {
+    const user = WebSession.getUser(session);
+    return await Gathering.isMemberOf(user, _id);
   }
 
   // @Router.get("/friends")

@@ -8,7 +8,7 @@ const emit = defineEmits(["getGatheringsByName"]);
 <template>
   <form @submit.prevent="emit('getGatheringsByName', name)" class="pure-form">
     <fieldset>
-      <legend>Search by Name</legend>
+      <legend>Search Gatherings</legend>
       <input id="name" type="text" v-model="name" placeholder="Name" />
       <button type="submit" class="pure-button pure-button-primary">Search</button>
     </fieldset>

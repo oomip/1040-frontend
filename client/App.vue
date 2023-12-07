@@ -54,15 +54,16 @@ onBeforeMount(async () => {
 
 nav {
   padding: 1em 2em;
-  background-color: #0057b3;
+  background: linear-gradient(0deg, rgba(0,35,71,1) 0%, rgba(0,87,179,1) 37%, rgba(96,142,190,1) 93%);
   display: flex;
   align-items: center;
-  filter: drop-shadow(#ffcfe9 0em 1em 10px);
+  filter: drop-shadow(#ffe8f4 0em 1em 10px);
 }
 
 h1 {
   font-size: 2em;
   color: #f7ffeb;
+  text-shadow: rgb(13, 106, 85) 1px 0 3px ;
   margin: 0;
 }
 
@@ -73,12 +74,24 @@ h1 {
 }
 
 img {
-  height: 2em;
+  height: 4em;
+  background: radial-gradient(circle, rgb(147, 165, 255, 0.5) 0%, rgba(70,201,252,0.01) 66%);
+  border-radius: 100%;
+  border-width: 0.2em;
+  border-color: rgb(144, 205, 199);
+  border-style: dotted;
+  border-bottom: #ccc;
+  border-top: #ccc;
 }
 
 a {
   color: #f7ffeb;
   text-decoration: none;
+}
+
+li:hover {
+  color: #f7ffeb;
+  font-style: italic;
 }
 
 ul {
@@ -88,9 +101,14 @@ ul {
   align-items: center;
   flex-direction: row;
   gap: 1em;
+
 }
+
 
 .underline {
   text-decoration: underline;
+  text-decoration-style: dotted;
+  font-style: italic;
+  color: #ffffff;
 }
 </style>
