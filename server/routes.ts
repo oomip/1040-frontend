@@ -176,28 +176,8 @@ class Routes {
   @Router.post("/gatherings/:_id/join")
   async joinGathering(session: WebSessionDoc, _id: ObjectId) {
     const user = WebSession.getUser(session);
-    const gathering = await Gathering.getGatheringbyId(_id);
-    try {
-      await Gathering.addMember(_id, user);
-    } catch (e) {
-      return e;
-    }
-    
-    // for (const groupId of gathering.groups) {
-    //   const group = await Group.getGroupById(groupId);
-    //   if (group.members.size == 2) {
-    //     // create group at 3 members
-    //     const newGroup = (await Group.create(group.members)).group;
-    //     if (newGroup !== null) {
-    //       await Group.addMember(newGroup._id, user);
-    //       await Gathering.addGroup(gathering._id, newGroup._id);
-    //     }
-    //   } else if (2 < group.members.size && group.members.size < 8) {
-    //     await Group.addMember(group._id, user);
-    //     await Gathering.addGroup(gathering._id, group._id);
-    //   }
-    // }
     return await Gathering.addMember(_id, user);
+    
   }
 
   @Router.post("/gatherings/:_id/leave")
