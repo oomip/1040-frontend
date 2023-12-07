@@ -1,7 +1,7 @@
 import { ObjectId } from "mongodb";
 import { Gathering, User } from "./app";
 // import { AlreadyFriendsError, FriendNotFoundError, FriendRequestAlreadyExistsError, FriendRequestDoc, FriendRequestNotFoundError } from "./concepts/friend";
-import { GatheringAuthorNotMatchError, GatheringDoc, GatheringUneditableError, GroupAlreadyInGatheringError, MemberAlreadyInGatheringError } from "./concepts/gathering";
+import { GatheringAuthorNotMatchError, GatheringDoc, GatheringUneditableError, GroupAlreadyInGatheringError, MemberAlreadyInGatheringError, TooManyMembersInGatheringError } from "./concepts/gathering";
 import { PostAuthorNotMatchError, PostDoc } from "./concepts/post";
 import { UserDoc } from "./concepts/user";
 import { Router } from "./framework/router";
@@ -71,6 +71,11 @@ Router.registerError(MemberAlreadyInGatheringError, async (e) => {
   const username = (await User.getUserById(e.member)).username;
   const gathering = (await Gathering.getGatheringbyId(e._id)).name;
   return e.formatWith(username, gathering);
+});
+
+Router.registerError(TooManyMembersInGatheringError, async (e) => {
+  const gathering = (await Gathering.getGatheringbyId(e._id)).name;
+  return e.formatWith(gathering);
 });
 
 Router.registerError(GroupAlreadyInGatheringError, async (e) => {
